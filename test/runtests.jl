@@ -10,6 +10,7 @@ using TestItemRunner
     tbl = (a=[1,2], b=["x", "yz"], c=[1.,missing])
     csvfname = tempname() * ".csv"
     pqfname = tempname() * ".pq"
+    jsonname = tempname() * ".json"
     
     write_table(csvfname, tbl)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
@@ -35,6 +36,10 @@ using TestItemRunner
     @test 300 < filesize(pqfname) < 500
     @test String(read(pqfname, 4)) == "PAR1"
     @test isequal(read_parquet(columntable, pqfname), tbl)
+
+    write_table(jsonname, tbl; format=:json)
+    @test readlines(jsonname) == ["{\"a\":1,\"b\":\"x\",\"c\":1.0}", "{\"a\":2,\"b\":\"yz\",\"c\":null}"]
+    @test isequal(read_json(columntable, jsonname), tbl)
 end
 
 @testitem "different parameters" begin
@@ -66,6 +71,12 @@ end
         xx=[1,2],
         var"абв ' \""=["x", "yz"],
         var"\ 1"=[1.0,missing],
+    ))
+
+    @test isequal(read_csv(columntable, [fname, fname]), (
+        a=[1,2,1,2],
+        b=["x", "yz", "x", "yz"],
+        c=[1.0,missing,1.0,missing],
     ))
 end
 
