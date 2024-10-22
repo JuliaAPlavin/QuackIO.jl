@@ -1,6 +1,7 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CompatHelperLocal = "5224ae11-6099-4aaa-941d-3aab004bd678"
+DataManipulation = "38052440-ad76-4236-8414-61389b2c5143"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 SQLCollections = "3934435e-e6e6-4fea-a5c0-3a716143d619"
 StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
