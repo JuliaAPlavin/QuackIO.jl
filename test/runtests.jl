@@ -82,6 +82,19 @@ end
     @test read_csv(columntable, IOBuffer("a\n1\n2\n")) == (a=[1,2],)
 end
 
+@testitem "SQLCollections" begin
+    using SQLCollections
+
+    tbl = (a=[1,2], b=["x", "yz"], c=[1.,missing])
+    csvfname = tempname() * ".csv"
+    write_table(csvfname, tbl)
+
+    sc = read_csv(SQLCollection, csvfname)
+    @test sc isa SQLCollection
+    @test count(Returns(true), sc) == 2
+    @test isequal(collect(sc), [(a=1, b="x", c=1.0), (a=2, b="yz", c=missing)])
+end
+
 @testitem "_" begin
     import Aqua
     Aqua.test_all(QuackIO; ambiguities=false)
