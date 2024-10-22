@@ -101,6 +101,14 @@ end
         map(@o (b=key(_).b, cnt=length(_)))
         collect
     end) == [(b = "x", cnt = 1), (b = "yz", cnt = 1)]
+
+    sc1 = read_csv(SQLCollection, [csvfname])
+    @test sc1 isa SQLCollection
+    @test isequal(collect(sc1), collect(sc))
+
+    sc2 = read_csv(SQLCollection, [csvfname, csvfname])
+    @test sc2 isa SQLCollection
+    @test isequal(collect(sc2), repeat(collect(sc), outer=2))
 end
 
 @testitem "_" begin
