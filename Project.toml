@@ -1,0 +1,6 @@
+name = "QuackIO"
+uuid = "7b8617ff-c43a-4c37-a28b-ad5a1791f8ae"
+authors = ["Alexander Plavin <alexander@plav.in>"]
+version = "0.1.0"
+
+[deps]
