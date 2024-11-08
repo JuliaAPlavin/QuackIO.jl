@@ -2,13 +2,23 @@ module QuackIO
 
 using DuckDB
 using Tables
+using DataAPI
 
 export write_table, read_csv, read_parquet, read_json
 
 function write_table(file, tbl; kwargs...)
     con = DuckDB.DB()
-	DuckDB.register_table(con, tbl, "my_tbl")
-    qstr = "copy my_tbl to '$(escape_sql_string(file))' $(kwargs_to_db_brackets(kwargs))"
+    DuckDB.register_table(con, tbl, "my_tbl")
+
+    # Add KV_METADATA to query when metadata is supported and format is Parquet
+    qstr = if DataAPI.metadatasupport(typeof(tbl)).read && Symbol(get(kwargs, :format, nothing)) === :parquet
+        md = DataAPI.metadata(tbl)
+        kwargs = Dict{Symbol,Any}(kwargs)
+        isempty(md) || get!(kwargs, :KV_METADATA, md)
+        "copy my_tbl to '$(escape_sql_string(file))' $(kwargs_to_db_brackets(kwargs))"
+    else
+        "copy my_tbl to '$(escape_sql_string(file))' $(kwargs_to_db_brackets(kwargs))"
+    end
     @debug "write_table query" qstr
 	DBInterface.execute(con, qstr)
 end
@@ -21,7 +31,13 @@ function _read_file(fmt, file, duckdb_func::String; kwargs...)
     qstr = "select * from $duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
-    DBInterface.execute(DuckDB.DB(), qstr) |> matf
+    table = DBInterface.execute(DuckDB.DB(), qstr) |> matf
+
+    # Write Parquet metadata to table metadata
+    if DataAPI.metadatasupport(typeof(table)).write && duckdb_func == "read_parquet"
+        _set_parquet_metadata!(table, file)
+    end
+    table
 end
 
 kwargs_to_db_brackets(kwargs) = isempty(kwargs) ? "" : "($(kwargs_to_db(kwargs, " ", kwarg_val_to_db_inbrackets)))"
@@ -48,5 +64,15 @@ kwarg_val_to_db_inbrackets(x::AbstractVector) = "(" * kwarg_val_to_db(x) * ")"
 kwarg_val_to_db_incomma(x::AbstractVector) = "[" * kwarg_val_to_db(x) * "]"
 
 escape_sql_string(x::AbstractString) = replace(x, "'" => "''")
+
+function _set_parquet_metadata!(table, file)
+    qstr = """select * from parquet_kv_metadata($(kwarg_val_to_db_incomma(file)))"""
+    results = DBInterface.execute(DuckDB.DB(), qstr)
+    for (_, key, value) in results
+        skey = String(key)
+        skey == "ARROW:schema" && continue  # ignore non-string valued internal metadata
+        DataAPI.metadata!(table, skey, String(value); style=:note)
+    end
+end
 
 end

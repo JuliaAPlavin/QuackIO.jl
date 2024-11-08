@@ -118,4 +118,19 @@ end
 
     import CompatHelperLocal as CHL
     CHL.@check(checktest=false)
+
+@testitem "metadata" begin
+    using DataFrames
+    using DataAPI
+
+    pqfname = tempname() * ".pq"
+    df = DataFrame((a=[1, 2], b=["x", "yz"], c=[1.0, missing]))
+    DataAPI.metadata!(df, "writer", "Quack'IO"; style=:note)  # ' for escaping
+    write_table(pqfname, df; format=:parquet, compression=:zstd)
+    ndf = read_parquet(DataFrame, pqfname)
+    @test DataAPI.metadata(ndf) == DataAPI.metadata(df)
+
+    # Metadata is ignored for unsupported formats
+    csvfname = tempname() * ".csv"
+    write_table(pqfname, df; format=:csv)
 end
