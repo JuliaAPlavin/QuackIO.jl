@@ -68,7 +68,7 @@ escape_sql_string(x::AbstractString) = replace(x, "'" => "''")
 function _set_parquet_metadata!(table, file)
     qstr = """select * from parquet_kv_metadata($(kwarg_val_to_db_incomma(file)))"""
     results = DBInterface.execute(DuckDB.DB(), qstr)
-    for (_, key, value) in results
+    for (;key, value) in results
         skey = String(key)
         skey == "ARROW:schema" && continue  # ignore non-string valued internal metadata
         DataAPI.metadata!(table, skey, String(value); style=:note)
