@@ -71,7 +71,7 @@ function _set_parquet_metadata!(table, file)
     for (;key, value) in results
         skey = String(key)
         skey == "ARROW:schema" && continue  # ignore non-string valued internal metadata
-        DataAPI.metadata!(table, skey, String(value); style=:note)
+        DataAPI.metadata!(table, skey, String(value))
     end
 end
 
