@@ -118,6 +118,7 @@ end
 
     import CompatHelperLocal as CHL
     CHL.@check(checktest=false)
+end
 
 @testitem "metadata" begin
     using DataFrames
@@ -126,9 +127,11 @@ end
     pqfname = tempname() * ".pq"
     df = DataFrame((a=[1, 2], b=["x", "yz"], c=[1.0, missing]))
     DataAPI.metadata!(df, "writer", "Quack'IO"; style=:note)  # ' for escaping
-    write_table(pqfname, df; format=:parquet, compression=:zstd)
+    DataAPI.metadata!(df, "1", 2; style=:note)
+    write_table(pqfname, df; format=:pArquet, compression=:zstd)
     ndf = read_parquet(DataFrame, pqfname)
-    @test DataAPI.metadata(ndf) == DataAPI.metadata(df)
+    @test DataAPI.metadata(ndf)["1"] == string(DataAPI.metadata(df)["1"])
+    @test DataAPI.metadata(ndf)["writer"] == DataAPI.metadata(df)["writer"]
 
     # Metadata is ignored for unsupported formats
     csvfname = tempname() * ".csv"
