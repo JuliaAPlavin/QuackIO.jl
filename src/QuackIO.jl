@@ -32,6 +32,12 @@ kwargs_to_db(kwargs, sep, val_to_db) = join(["$k $sep $(val_to_db(v))" for (k,v)
 kwarg_val_to_db(x::AbstractString) = "'$(escape_sql_string(x))'"
 kwarg_val_to_db(x::Symbol) = "$x"
 kwarg_val_to_db(x::Number) = "$x"
+function kwarg_val_to_db(io::IOBuffer)
+	fpath, fio = mktemp()
+	write(fpath, take!(io))
+	return kwarg_val_to_db(fpath)
+end
+
 kwarg_val_to_db(x::Union{NamedTuple,AbstractDict}) = "{" * join(("$(kwarg_val_to_db(k)) : $(kwarg_val_to_db(v))" for (k, v) in pairs(x)), ", ") * "}"
 kwarg_val_to_db(x::AbstractVector) = join(kwarg_val_to_db.(x), ", ")
 
