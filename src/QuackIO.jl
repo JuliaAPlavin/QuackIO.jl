@@ -2,10 +2,13 @@ module QuackIO
 
 using DuckDB
 using Tables
+using DataAPI
 
 export write_table, read_csv, read_parquet, read_json
 
 function write_table(file, tbl; kwargs...)
+    kwargs = merge(NamedTuple(kwargs), _table_metadata_to_kwargs(file, tbl; kwargs))
+
     con = DuckDB.DB()
 	DuckDB.register_table(con, tbl, "my_tbl")
     qstr = "copy my_tbl to '$(escape_sql_string(file))' $(kwargs_to_db_brackets(kwargs))"
@@ -21,7 +24,9 @@ function _read_file(fmt, file, duckdb_func::String; kwargs...)
     qstr = "select * from $duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
-    DBInterface.execute(DuckDB.DB(), qstr) |> matf
+    table = DBInterface.execute(DuckDB.DB(), qstr) |> matf
+    _read_metadata!(table, file; duckdb_func)
+    return table
 end
 
 kwargs_to_db_brackets(kwargs) = isempty(kwargs) ? "" : "($(kwargs_to_db(kwargs, " ", kwarg_val_to_db_inbrackets)))"
@@ -48,5 +53,29 @@ kwarg_val_to_db_inbrackets(x::AbstractVector) = "(" * kwarg_val_to_db(x) * ")"
 kwarg_val_to_db_incomma(x::AbstractVector) = "[" * kwarg_val_to_db(x) * "]"
 
 escape_sql_string(x::AbstractString) = replace(x, "'" => "''")
+
+
+function _table_metadata_to_kwargs(file, tbl; kwargs)
+    has_metadata = DataAPI.metadatasupport(typeof(tbl)).read && !isempty(DataAPI.metadata(tbl))
+    if has_metadata && lowercase(String(get(kwargs, :format, nothing))) === "parquet"
+        return (;KV_METADATA=DataAPI.metadata(tbl))
+    end
+    return (;)
+end
+
+function _read_metadata!(table, file; duckdb_func)
+    if DataAPI.metadatasupport(typeof(table)).write && lowercase(duckdb_func) == "read_parquet"
+        qstr = """
+            select *
+            from parquet_kv_metadata($(kwarg_val_to_db_incomma(file)))
+            where key != 'ARROW:schema'  -- ignore non-string valued internal metadata
+        """
+        results = DBInterface.execute(DuckDB.DB(), qstr)
+        for (;key, value) in results
+            # DuckDB encodes metadata as strings (blobs)
+            DataAPI.metadata!(table, String(key), String(value))
+        end
+    end
+end
 
 end

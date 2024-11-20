@@ -1,6 +1,8 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CompatHelperLocal = "5224ae11-6099-4aaa-941d-3aab004bd678"
+DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataManipulation = "38052440-ad76-4236-8414-61389b2c5143"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 SQLCollections = "3934435e-e6e6-4fea-a5c0-3a716143d619"
@@ -13,6 +15,8 @@ TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 [compat]
 Aqua = "0.8"
 CompatHelperLocal = "0.1"
+DataAPI = "1"
+DataFrames = "1"
 StructArrays = "0.6.18"
 TestItemRunner = "1"
 TestItems = "1"
