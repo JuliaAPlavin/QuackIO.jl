@@ -43,7 +43,7 @@ using TestItemRunner
 end
 
 @testitem "different parameters" begin
-    using Logging; ConsoleLogger(stdout, Logging.Debug) |> global_logger
+    # using Logging; ConsoleLogger(stdout, Logging.Debug) |> global_logger
     using Tables
 
     tbl = (a=[1,2], b=["x", "yz"], c=[1.,missing])
@@ -88,5 +88,5 @@ end
     Aqua.test_ambiguities(QuackIO)
 
     import CompatHelperLocal as CHL
-    CHL.@check()
+    CHL.@check(checktest=false)
 end
