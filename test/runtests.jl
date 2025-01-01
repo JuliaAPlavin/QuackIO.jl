@@ -84,6 +84,7 @@ end
 
 @testitem "SQLCollections" begin
     using SQLCollections
+    using DataManipulation
 
     tbl = (a=[1,2], b=["x", "yz"], c=[1.,missing])
     csvfname = tempname() * ".csv"
@@ -93,6 +94,13 @@ end
     @test sc isa SQLCollection
     @test count(Returns(true), sc) == 2
     @test isequal(collect(sc), [(a=1, b="x", c=1.0), (a=2, b="yz", c=missing)])
+
+    @test (@p let
+        sc
+        group_vg(@o (;_.b))
+        map(@o (b=key(_).b, cnt=length(_)))
+        collect
+    end) == [(b = "x", cnt = 1), (b = "yz", cnt = 1)]
 end
 
 @testitem "_" begin
