@@ -6,7 +6,7 @@ using Tables
 export write_table, read_csv, read_parquet, read_json
 
 function write_table(file, tbl; kwargs...)
-    con = DBInterface.connect(DuckDB.DB)
+    con = DuckDB.DB()
 	DuckDB.register_table(con, tbl, "my_tbl")
     qstr = "copy my_tbl to '$(escape_sql_string(file))' $(kwargs_to_db_brackets(kwargs))"
     @debug "write_table query" qstr
@@ -21,7 +21,7 @@ function _read_file(fmt, file, duckdb_func::String; kwargs...)
     qstr = "select * from $duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
-    DBInterface.execute(DBInterface.connect(DuckDB.DB), qstr) |> matf
+    DBInterface.execute(DuckDB.DB(), qstr) |> matf
 end
 
 kwargs_to_db_brackets(kwargs) = isempty(kwargs) ? "" : "($(kwargs_to_db(kwargs, " ", kwarg_val_to_db_inbrackets)))"
