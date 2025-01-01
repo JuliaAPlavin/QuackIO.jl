@@ -43,7 +43,7 @@ using TestItemRunner
 end
 
 @testitem "different parameters" begin
-    # using Logging; ConsoleLogger(stdout, Logging.Debug) |> global_logger
+    using Logging; ConsoleLogger(stdout, Logging.Debug) |> global_logger
     using Tables
 
     tbl = (a=[1,2], b=["x", "yz"], c=[1.,missing])
@@ -78,6 +78,8 @@ end
         b=["x", "yz", "x", "yz"],
         c=[1.0,missing,1.0,missing],
     ))
+
+    @test read_csv(columntable, IOBuffer("a\n1\n2\n")) == (a=[1,2],)
 end
 
 @testitem "_" begin
