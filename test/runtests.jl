@@ -32,7 +32,7 @@ using TestItemRunner
     run(`gunzip --force $(csvfname * ".gz")`)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
 
-    write_table(pqfname, tbl; format=:parquet)
+    write_table(pqfname, tbl; format=:Parquet)
     @test 300 < filesize(pqfname) < 500
     @test String(read(pqfname, 4)) == "PAR1"
     @test isequal(read_parquet(columntable, pqfname), tbl)
@@ -109,6 +109,37 @@ end
     sc2 = read_csv(SQLCollection, [csvfname, csvfname])
     @test sc2 isa SQLCollection
     @test isequal(collect(sc2), repeat(collect(sc), outer=2))
+end
+
+@testitem "metadata" begin
+    using DataFrames: DataFrame
+    import DataAPI
+    using Tables
+
+    pqfname = tempname() * ".pq"
+
+    # types that support metadata but don't contain it:
+    df = DataFrame((a=[1, 2], b=["x", "yz"], c=[1.0, missing]))
+    write_table(pqfname, df; format=:parquet)
+    ndf = read_parquet(DataFrame, pqfname)
+    @test DataAPI.metadata(ndf) == DataAPI.metadata(df)
+
+    # tables that actually contain metadata:
+    df = DataFrame((a=[1, 2], b=["x", "yz"], c=[1.0, missing]))
+    DataAPI.metadata!(df, "writer", "Quack'IO"; style=:note)  # ' for escaping
+    DataAPI.metadata!(df, "1", 2)
+    write_table(pqfname, df; format=:pArquet, compression=:zstd)
+    ndf = read_parquet(DataFrame, pqfname)
+    @test DataAPI.metadata(ndf)["1"] == string(DataAPI.metadata(df)["1"])
+    @test DataAPI.metadata(ndf)["writer"] == DataAPI.metadata(df)["writer"]
+
+    # metadata is ignored when not supported by table types
+    ntbl = read_parquet(columntable, pqfname)
+    @test isequal(ntbl, columntable(df))
+
+    # metadata is ignored when not supported by file formats
+    csvfname = tempname() * ".csv"
+    write_table(pqfname, df; format=:csv)
 end
 
 @testitem "_" begin
