@@ -65,15 +65,28 @@ $COMMON_ARGUMENTS_DOC
 read_file(fmt, file, filetype::Union{Symbol,Nothing}=nothing; kwargs...) =
     _read_file(fmt, file, isnothing(filetype) ? nothing : "read_$filetype"; kwargs...)
 
-function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; kwargs...)
-    @assert isnothing(duckdb_func) || !any(isuppercase, duckdb_func)
-    qstr = "select * from $duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
+function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; select=nothing, kwargs...)
+    qstr = "select * from $(_from_string(file, duckdb_func; kwargs...))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
     table = DBInterface.execute(DuckDB.DB(), qstr) |> matf
     _read_metadata!(table, file; duckdb_func)
     return table
 end
+
+
+function _from_string(file, duckdb_func::Nothing; kwargs...)
+    isempty(kwargs) || throw(ArgumentError("""
+    A specific file type was not selected, but additional keyword arguments were passed.
+    These arguments should only be used when a specific file type is selected as they are passed to the DuckDB `read_*` function.
+    """))
+    kwarg_val_to_db_incomma(file)
+end
+function _from_string(file, duckdb_func::String; kwargs...)
+    @assert !any(isuppercase, duckdb_func)
+    "$duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
+end
+
 
 kwargs_to_db_brackets(kwargs) = isempty(kwargs) ? "" : "($(kwargs_to_db(kwargs, " ", kwarg_val_to_db_inbrackets)))"
 kwargs_to_db_comma(kwargs) = isempty(kwargs) ? "" : ", $(kwargs_to_db(kwargs, "=", kwarg_val_to_db_incomma))"
