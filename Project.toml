@@ -1,7 +1,7 @@
 name = "QuackIO"
 uuid = "7b8617ff-c43a-4c37-a28b-ad5a1791f8ae"
 authors = ["Alexander Plavin <alexander@plav.in>"]
-version = "0.1.4"
+version = "0.1.5"
 
 [deps]
 DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
