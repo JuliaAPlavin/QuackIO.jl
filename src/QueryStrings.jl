@@ -1,0 +1,4 @@
+module QueryStrings
+
+
+end

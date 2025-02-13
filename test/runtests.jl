@@ -15,9 +15,17 @@ using TestItemRunner
     write_table(csvfname, tbl)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
 
+    rtbl = [(a=1, b="x", c=1.0), (a=2, b="yz", c=missing)]
+
     @test isequal(read_csv(columntable, csvfname), tbl)
-    @test isequal(read_csv(rowtable, csvfname), [(a=1, b="x", c=1.0), (a=2, b="yz", c=missing)])
-    @test isequal(read_csv(StructArray, csvfname)::StructArray, [(a=1, b="x", c=1.0), (a=2, b="yz", c=missing)])
+    @test isequal(read_csv(rowtable, csvfname), rtbl)
+    @test isequal(read_csv(StructArray, csvfname)::StructArray, rtbl)
+
+    # DDB should guess CSV for us in this case
+    @test isequal(QuackIO.read_file(columntable, csvfname), tbl)
+
+    @test isequal(read_csv(columntable, csvfname, select=(:a, :b)), (a=[1,2], b=["x", "yz"]))
+    @test isequal(read_csv(columntable, csvfname, select=("a"=>"c", "b"=>"d")), (c=[1,2], d=["x", "yz"]))
 
     write_table(csvfname, tbl; format=:csv)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
@@ -32,8 +40,9 @@ using TestItemRunner
     run(`gunzip --force $(csvfname * ".gz")`)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
 
-    write_table(pqfname, tbl; format=:Parquet)
-    @test 300 < filesize(pqfname) < 500
+    write_table(pqfname, tbl; format=:parquet)
+    # these seem to have gotten bigger on later versions of DDB
+    @test 300 < filesize(pqfname) < 1000
     @test String(read(pqfname, 4)) == "PAR1"
     @test isequal(read_parquet(columntable, pqfname), tbl)
 
