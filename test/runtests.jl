@@ -27,6 +27,10 @@ using TestItemRunner
     @test isequal(read_csv(columntable, csvfname, select=(:a, :b)), (a=[1,2], b=["x", "yz"]))
     @test isequal(read_csv(columntable, csvfname, select=("a"=>"c", "b"=>"d")), (c=[1,2], d=["x", "yz"]))
 
+    tbl2 = NamedTuple{(Symbol("a b"),)}(([1,2],))
+    write_table(csvfname, tbl2; format=:csv)
+    @test isequal(read_csv(columntable, csvfname, select=("a b"=>"c d",)), NamedTuple{(Symbol("c d"),)}(([1,2],)))
+
     write_table(csvfname, tbl; format=:csv)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
     @test isequal(read_csv(columntable, csvfname), tbl)

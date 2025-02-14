@@ -5,7 +5,7 @@ using QuackIO: kwarg_val_to_db_incomma, kwargs_to_db_comma, DBInterface, DuckDB,
     columntable, _selectstring, duckdb_filetype_func
 using SQLCollections: SQLCollection, FunSQL as F
 
-function QuackIO.read_file(::Type{SQLCollection}, file, filetype::Symbol; kwargs...)
+function QuackIO.read_file(::Type{SQLCollection}, file, filetype::Union{Symbol,Nothing}=nothing; kwargs...)
     duckdb_func = duckdb_filetype_func(filetype)
     qstr = _selectstring(file, duckdb_func; kwargs...)
     @debug("running query string:", qstr)

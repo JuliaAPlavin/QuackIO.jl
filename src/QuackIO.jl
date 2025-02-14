@@ -40,7 +40,7 @@ see [`read_file`](@ref).
 """
 read_json(fmt, file; kwargs...) = read_file(fmt, file, :json; kwargs...)
 
-_colname_sql_string(col::Union{Symbol,AbstractString}) = string(col)
+_colname_sql_string(col::Union{Symbol,AbstractString}) = string('"', col, '"')
 _colname_sql_string(col::Pair) = string(_colname_sql_string(col[1]), " AS ", _colname_sql_string(col[2]))
 
 function columnsstring(cols)
@@ -51,14 +51,14 @@ function columnsstring(cols)
     end
 end
 
-function duckdb_filetype_func(filetype::Symbol)
+function duckdb_filetype_func(filetype::Union{Symbol,Nothing})
     if filetype == :parquet
         "read_parquet"
     elseif filetype == :csv
         "read_csv"
     elseif filetype == :json
         "read_json"
-    elseif filetype == :unknown  # this should let DDB guess
+    elseif isnothing(filetype)  # this should let DDB guess
         ""
     else
         throw(ArgumentError("unrecognized file type $filetype"))
@@ -77,25 +77,25 @@ function _selectstring(file, duckdb_func::AbstractString; select=nothing, limit:
     qstr
 end
 
-function selectstring(file, filetype::Symbol; kwargs...)
+function selectstring(file, filetype::Union{Symbol,Nothing}; kwargs...)
     duckdb_func = duckdb_filetype_func(filetype)
     _selectstring(file, duckdb_func; kwargs...)
 end
 
 """
-    QuackIO.read_file(fmt, filename, filetype::Symbol=:unknown; select=nothing, kwargs...)
+    QuackIO.read_file(fmt, filename, filetype=nothing; select=nothing, kwargs...)
 
 Read a table from file or files `filename` into the data structure `fmt` using DuckDB.  Examples of `fmt`
 include `DataFrame`, `StructArray`, `columntable` and `rowtable`.
 
-`filetype` can be `:parquet`, `:csv`, `:json` or `:unknown`.  If `:unknown`, DuckDB will attempt to guess
+`filetype` can be `:parquet`, `:csv`, `:json` or `nothing`.  If `nothing`, DuckDB will attempt to guess
 the filetype, this is equivalent to passing the file name only to DuckDB without an explicit read function.
 
 `select` can be `nothing` or an iterator.  If `nothing` or an empty iterator, all columns will be read.  A
 non-empty iterator must have elements that are strings, `Symbol` or `Pair` of string or `Symbol`.  Only the
 specified columns will be read, `Pair`s will provide aliases for the read columns.
 """
-function read_file(fmt, file, filetype::Symbol=:unknown; kwargs...)
+function read_file(fmt, file, filetype::Union{Symbol,Nothing}=nothing; kwargs...)
     qstr = selectstring(file, filetype; kwargs...)
     @debug("running query string:", qstr)
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
@@ -138,7 +138,7 @@ function _table_metadata_to_kwargs(file, tbl; kwargs)
     return (;)
 end
 
-function _read_metadata!(table, file, filetype::Symbol)
+function _read_metadata!(table, file, filetype)
     if DataAPI.metadatasupport(typeof(table)).write && filetype == :parquet
         qstr = """
             select *
