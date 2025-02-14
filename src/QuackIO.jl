@@ -68,6 +68,13 @@ end
 function _selectstring(file, duckdb_func::AbstractString; select=nothing, limit::Integer=-1, kwargs...)
     cols = columnsstring(select)
     readstr = if isempty(duckdb_func)
+        if !isempty(kwargs)
+            throw(ArgumentError("""
+            A specific file type was not selected, but additional keyword arguments were passed.
+            These arguments should only be used when a specific file type is selected as they
+            are passed to the DuckDB `read_` function.
+            """))
+        end
         kwarg_val_to_db(file)
     else
         string(duckdb_func, "(", kwarg_val_to_db_incomma(file), " ", kwargs_to_db_comma(kwargs), ")")
