@@ -7,6 +7,7 @@ using DataAPI
 export write_table, read_csv, read_parquet, read_json
 
 function write_table(file, tbl; kwargs...)
+    @assert !any(isuppercase, String(get(kwargs, :format, "")))
     kwargs = merge(NamedTuple(kwargs), _table_metadata_to_kwargs(file, tbl; kwargs))
 
     con = DuckDB.DB()
@@ -21,6 +22,7 @@ read_parquet(fmt, file; kwargs...) = _read_file(fmt, file, "read_parquet"; kwarg
 read_json(fmt, file; kwargs...) = _read_file(fmt, file, "read_json"; kwargs...)
 
 function _read_file(fmt, file, duckdb_func::String; kwargs...)
+    @assert !any(isuppercase, duckdb_func)
     qstr = "select * from $duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
@@ -57,14 +59,14 @@ escape_sql_string(x::AbstractString) = replace(x, "'" => "''")
 
 function _table_metadata_to_kwargs(file, tbl; kwargs)
     has_metadata = DataAPI.metadatasupport(typeof(tbl)).read && !isempty(DataAPI.metadata(tbl))
-    if has_metadata && lowercase(String(get(kwargs, :format, nothing))) === "parquet"
+    if has_metadata && get(kwargs, :format, nothing) === :parquet
         return (;KV_METADATA=DataAPI.metadata(tbl))
     end
     return (;)
 end
 
 function _read_metadata!(table, file; duckdb_func)
-    if DataAPI.metadatasupport(typeof(table)).write && lowercase(duckdb_func) == "read_parquet"
+    if DataAPI.metadatasupport(typeof(table)).write && duckdb_func == "read_parquet"
         qstr = """
             select *
             from parquet_kv_metadata($(kwarg_val_to_db_incomma(file)))
