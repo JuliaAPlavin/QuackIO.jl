@@ -44,6 +44,16 @@ using TestItemRunner
     @test isequal(read_json(columntable, jsonname), tbl)
 end
 
+@testitem "read and guess format" begin
+    using Tables
+
+    tbl = (a=[1,2], b=["x", "yz"], c=[1.,missing])
+    csvfname = tempname() * ".csv"
+    write_table(csvfname, tbl)
+
+    @test isequal(QuackIO.read_file(columntable, csvfname), tbl)
+end
+
 @testitem "different parameters" begin
     # using Logging; ConsoleLogger(stdout, Logging.Debug) |> global_logger
     using Tables
