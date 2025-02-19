@@ -9,7 +9,8 @@ export write_table, read_csv, read_parquet, read_json
 
 
 const COMMON_ARGUMENTS_DOC = """
-- `fmt`: Julia table type or materializer function. Common examples include `columntable` and `rowtable` from `Tables.jl`, and types like `StructArray`, `DataFrame`, `TypedTables.Table`.
+- `fmt`: Julia table type or materializer function.
+Common examples of in-memory tables include `columntable` and `rowtable` from `Tables.jl`, and types like `StructArray`, `DataFrame`, `TypedTables.Table`. Pass `SQLCollection` to return a lazy `SQLCollection` object.
 
 ## Experimental arguments
 
