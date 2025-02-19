@@ -16,8 +16,8 @@ using TestItemRunner
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
 
     @test isequal(read_csv(columntable, csvfname), tbl)
-    @test isequal(read_csv(rowtable, csvfname), [(a=1, b="x", c=1.0), (a=2, b="yz", c=missing)])
-    @test isequal(read_csv(StructArray, csvfname)::StructArray, [(a=1, b="x", c=1.0), (a=2, b="yz", c=missing)])
+    @test isequal(read_csv(rowtable, csvfname), rowtable(tbl))
+    @test isequal(read_csv(StructArray, csvfname)::StructArray, rowtable(tbl))
 
     write_table(csvfname, tbl; format=:csv)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
