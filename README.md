@@ -25,3 +25,34 @@ tbl = read_json(rowtable, "my_file.json")
 ```
 
 Thanks to DuckDB and its Julia integration, `QuackIO` functions are performant. They can even be faster than native Julia readers for these formats.
+
+## Querying, row and column selection
+
+`QuackIO` is based on DuckDB – a fully-featured SQL database. Such a backend makes it straightforward to do basic data manipulation on the fly, without materializing the whole table in memory.\
+Thanks to the [SQLCollections.jl](https://github.com/JuliaAPlavin/SQLCollections.jl) integration, even the syntax for performing manipulations in SQL is basically the same as for in-memory Julia datasets. Compare:
+```julia
+using QuackIO
+using Tables
+using DataPipes
+
+# basic:
+# load everything into memory, then filter and select columns:
+@p read_csv(rowtable, "https://duckdb.org/data/duckdb-releases.csv") |>
+   filter(startswith(_.version_number, "0.10.")) |>
+   map((;_.version_number, _.release_date))
+
+
+using SQLCollections
+
+# with SQLCollections:
+# filter and select columns on the fly in DuckDB,
+# load only the small final table into memory
+@p read_csv(SQLCollection, "https://duckdb.org/data/duckdb-releases.csv") |>
+   filter(@o startswith(_.version_number, "0.10.")) |>
+   map(@o (;_.version_number, _.release_date)) |>
+   collect
+```
+
+---
+_Experimental:_
+Very common tasks, such as column selection, are also supported through dedicated keyword arguments in `read_*` functions. For example, `read_csv(...; select=["version_number", "release_date"])`; see docstrings for more details.
