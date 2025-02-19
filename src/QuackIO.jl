@@ -5,7 +5,7 @@ using Tables
 using DataAPI
 
 export write_table, read_csv, read_parquet, read_json
-public read_file
+# public read_file  # should be public, but 1.10 doesn't support this
 
 
 const COMMON_ARGUMENTS_DOC = """
