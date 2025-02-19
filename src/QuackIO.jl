@@ -65,8 +65,8 @@ $COMMON_ARGUMENTS_DOC
 read_file(fmt, file, filetype::Union{Symbol,Nothing}=nothing; kwargs...) =
     _read_file(fmt, file, isnothing(filetype) ? nothing : "read_$filetype"; kwargs...)
 
-function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; select=nothing, kwargs...)
-    qstr = "select * from $(_from_string(file, duckdb_func; kwargs...))"
+function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; select=nothing, limit=nothing, kwargs...)
+    qstr = "select $(_select_string(select)) from $(_from_string(file, duckdb_func; kwargs...)) $(_limit_string(limit))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
     table = DBInterface.execute(DuckDB.DB(), qstr) |> matf
@@ -74,6 +74,12 @@ function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; select=nothin
     return table
 end
 
+
+
+_select_string(select::Nothing) = "*"
+_select_string(select) = join(map(_colname_sql_string, select), ", ")
+_colname_sql_string(col::Union{Symbol,AbstractString}) = "\"$col\""
+_colname_sql_string(col::Pair) = "$(_colname_sql_string(col[1])) AS $(_colname_sql_string(col[2]))"
 
 function _from_string(file, duckdb_func::Nothing; kwargs...)
     isempty(kwargs) || throw(ArgumentError("""
@@ -86,6 +92,9 @@ function _from_string(file, duckdb_func::String; kwargs...)
     @assert !any(isuppercase, duckdb_func)
     "$duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
 end
+
+_limit_string(limit::Nothing) = ""
+_limit_string(limit::Integer) = "limit $limit"
 
 
 kwargs_to_db_brackets(kwargs) = isempty(kwargs) ? "" : "($(kwargs_to_db(kwargs, " ", kwarg_val_to_db_inbrackets)))"

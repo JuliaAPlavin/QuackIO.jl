@@ -54,6 +54,22 @@ end
     @test isequal(QuackIO.read_file(columntable, csvfname), tbl)
 end
 
+@testitem "select columns and limit rows" begin
+    using Tables
+
+    tbl = (a=[1,2], b=["x", "yz"], c=[1.,missing])
+    csvfname = tempname() * ".csv"
+    write_table(csvfname, tbl)
+
+    @test isequal(read_csv(columntable, csvfname, select=(:a, :b)), tbl[(:a, :b)])
+    @test isequal(read_csv(columntable, csvfname, select=("a"=>"c", "b"=>"d")), (c=tbl.a, d=tbl.b))
+    @test isequal(read_csv(columntable, csvfname, select=("a"=>"c", "b"=>"d"), limit=1), (c=[1], d=["x"]))
+
+    tbl = (;var"a b"=[1,2])
+    write_table(csvfname, tbl; format=:csv)
+    @test isequal(read_csv(columntable, csvfname, select=("a b"=>"c d",)), (var"c d"=tbl.var"a b",))
+end
+
 @testitem "different parameters" begin
     # using Logging; ConsoleLogger(stdout, Logging.Debug) |> global_logger
     using Tables
