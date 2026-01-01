@@ -29,7 +29,34 @@ Thanks to DuckDB and its Julia integration, `QuackIO` functions are performant. 
 ## Querying, row and column selection
 
 `QuackIO` is based on DuckDB – a fully-featured SQL database. Such a backend makes it straightforward to do basic data manipulation on the fly, without materializing the whole table in memory.\
-Thanks to the [SQLCollections.jl](https://github.com/JuliaAPlavin/SQLCollections.jl) integration, even the syntax for performing manipulations in SQL is basically the same as for in-memory Julia datasets. Compare:
+Thanks to the [SQLCollections.jl](https://github.com/JuliaAPlavin/SQLCollections.jl) integration, even the syntax for performing manipulations in SQL is basically the same as for in-memory Julia datasets.
+
+### Column Selection
+
+Load only specific columns from a CSV file into memory:
+```julia
+using QuackIO
+using SQLCollections
+
+map(
+   (@o (;_.version_number, _.release_date)),  # @o syntax comes from Accessors.jl
+   read_csv(SQLCollection, "https://duckdb.org/data/duckdb-releases.csv")) |> collect
+```
+
+### Extract First N Rows
+
+Only load first 3 rows from a CSV file into memory:
+```julia
+using QuackIO
+using SQLCollections
+
+first(read_csv(SQLCollection, "https://duckdb.org/data/duckdb-releases.csv"), 3) |> collect
+```
+
+### Generic Queries
+
+Even more complex queries can be performed with basically the same syntax as for in-memory Julia datasets. `DataPipes.jl` is especially useful for writing multi-step pipelines.\
+Compare loading all data into memory and doing filtering there:
 ```julia
 using QuackIO
 using Tables
@@ -41,8 +68,10 @@ using DataPipes
    filter(startswith(_.version_number, "0.10.")) |>
    map((;_.version_number, _.release_date)) |>
    first(__, 3)
+```
 
-
+Versus doing everything in DuckDB and loading only the small final table into memory:
+```julia
 using SQLCollections
 
 # with SQLCollections:
