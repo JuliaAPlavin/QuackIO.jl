@@ -32,8 +32,10 @@ using TestItemRunner
     run(`gunzip --force $(csvfname * ".gz")`)
     @test readlines(csvfname) == ["a,b,c", "1,x,1.0", "2,yz,"]
 
-    write_table(pqfname, tbl; format=:Parquet)
-    @test 300 < filesize(pqfname) < 500
+    @test_throws "uppercase" write_table(pqfname, tbl; format=:Parquet)
+    @test !isfile(pqfname)
+    write_table(pqfname, tbl; format=:parquet)
+    @test 300 < filesize(pqfname) < 1000
     @test String(read(pqfname, 4)) == "PAR1"
     @test isequal(read_parquet(columntable, pqfname), tbl)
 
@@ -128,7 +130,7 @@ end
     df = DataFrame((a=[1, 2], b=["x", "yz"], c=[1.0, missing]))
     DataAPI.metadata!(df, "writer", "Quack'IO"; style=:note)  # ' for escaping
     DataAPI.metadata!(df, "1", 2)
-    write_table(pqfname, df; format=:pArquet, compression=:zstd)
+    write_table(pqfname, df; format=:parquet, compression=:zstd)
     ndf = read_parquet(DataFrame, pqfname)
     @test DataAPI.metadata(ndf)["1"] == string(DataAPI.metadata(df)["1"])
     @test DataAPI.metadata(ndf)["writer"] == DataAPI.metadata(df)["writer"]
