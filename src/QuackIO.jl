@@ -65,7 +65,7 @@ $COMMON_ARGUMENTS_DOC
 read_file(fmt, file, filetype::Union{Symbol,Nothing}=nothing; kwargs...) =
     _read_file(fmt, file, isnothing(filetype) ? nothing : "read_$filetype"; kwargs...)
 
-function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; select=nothing, limit=nothing, kwargs...)
+function _read_file(fmt, file, duckdb_func; select=nothing, limit=nothing, kwargs...)
     qstr = "select $(_select_string(select)) from $(_from_string(file, duckdb_func; kwargs...)) $(_limit_string(limit))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
@@ -73,7 +73,6 @@ function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; select=nothin
     _read_metadata!(table, file; duckdb_func)
     return table
 end
-
 
 
 _select_string(select::Nothing) = "*"
