@@ -39,7 +39,8 @@ using DataPipes
 # load everything into memory, then filter and select columns:
 @p read_csv(rowtable, "https://duckdb.org/data/duckdb-releases.csv") |>
    filter(startswith(_.version_number, "0.10.")) |>
-   map((;_.version_number, _.release_date))
+   map((;_.version_number, _.release_date)) |>
+   first(__, 3)
 
 
 using SQLCollections
@@ -50,9 +51,10 @@ using SQLCollections
 @p read_csv(SQLCollection, "https://duckdb.org/data/duckdb-releases.csv") |>
    filter(@o startswith(_.version_number, "0.10.")) |>
    map(@o (;_.version_number, _.release_date)) |>
+   first(__, 3) |>
    collect
 ```
 
 ---
 _Experimental:_
-Very common tasks, such as column selection, are also supported through dedicated keyword arguments in `read_*` functions. For example, `read_csv(...; select=["version_number", "release_date"])`; see docstrings for more details.
+Very common tasks, such as column selection, are also supported through dedicated keyword arguments in `read_*` functions. For example, `read_csv(...; select=["version_number", "release_date"], limit=3)`; see docstrings for more details.
