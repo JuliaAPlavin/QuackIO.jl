@@ -5,6 +5,29 @@ using Tables
 using DataAPI
 
 export write_table, read_csv, read_parquet, read_json
+public read_file
+
+
+const COMMON_ARGUMENTS_DOC = """
+- `fmt`: Julia table type or materializer function. Common examples include `columntable` and `rowtable` from `Tables.jl`, and types like `StructArray`, `DataFrame`, `TypedTables.Table`.
+
+## Experimental arguments
+
+- `select = nothing`: columns to select from the file; can be `nothing` or an iterator.
+If `nothing`, all columns will be read. If an iterator, it must have elements that are strings or `Symbol`s to select a subset of columns, or `Pair`s of strings or `Symbol`s to rename them.
+- `limit = nothing`: number of rows to be read, or `nothing` to read the entire file.
+"""
+
+_docstring_for_read(fmt) = """    read_$(lowercase(fmt))(fmt, file; kwargs...)
+
+Read the $fmt file `file` into the Julia table `fmt` using DuckDB.
+Equivalent to `read_file(fmt, file, :csv; kwargs...)`.
+
+# Arguments
+
+$COMMON_ARGUMENTS_DOC
+"""
+
 
 function write_table(file, tbl; kwargs...)
     @assert !any(isuppercase, String(get(kwargs, :format, "")))
@@ -17,12 +40,33 @@ function write_table(file, tbl; kwargs...)
 	DBInterface.execute(con, qstr)
 end
 
-read_csv(fmt, file; kwargs...) = _read_file(fmt, file, "read_csv"; kwargs...)
-read_parquet(fmt, file; kwargs...) = _read_file(fmt, file, "read_parquet"; kwargs...)
-read_json(fmt, file; kwargs...) = _read_file(fmt, file, "read_json"; kwargs...)
+@doc _docstring_for_read("CSV")
+read_csv(fmt, file; kwargs...) = read_file(fmt, file, :csv; kwargs...)
 
-function _read_file(fmt, file, duckdb_func::String; kwargs...)
-    @assert !any(isuppercase, duckdb_func)
+@doc _docstring_for_read("Parquet")
+read_parquet(fmt, file; kwargs...) = read_file(fmt, file, :parquet; kwargs...)
+
+@doc _docstring_for_read("JSON")
+read_json(fmt, file; kwargs...) = read_file(fmt, file, :json; kwargs...)
+
+"""
+    QuackIO.read_file(fmt, file, filetype=nothing; kwargs...)
+
+Read a table from file or files `file` into the Julia table `fmt` using DuckDB.
+
+# Arguments
+
+- `filetype = nothing`: can be `:parquet`, `:csv`, `:json` or `nothing`.
+If a symbol, calls the `read_\$filetype` DuckDB function.
+If `nothing`, DuckDB will attempt to guess the filetype, equivalent to passing the file name to DuckDB without an explicit `read_*` function.
+
+$COMMON_ARGUMENTS_DOC
+"""
+read_file(fmt, file, filetype::Union{Symbol,Nothing}=nothing; kwargs...) =
+    _read_file(fmt, file, isnothing(filetype) ? nothing : "read_$filetype"; kwargs...)
+
+function _read_file(fmt, file, duckdb_func::Union{String,Nothing}; kwargs...)
+    @assert isnothing(duckdb_func) || !any(isuppercase, duckdb_func)
     qstr = "select * from $duckdb_func($(kwarg_val_to_db_incomma(file)) $(kwargs_to_db_comma(kwargs)))"
     @debug "$duckdb_func query" qstr
     matf = fmt isa Function ? fmt : Tables.materializer(fmt)
