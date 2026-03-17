@@ -4,7 +4,9 @@ If it quacks like a tabular IO package, then it is a tabular IO package _(powere
 
 `QuackIO` provides a native Julia interface to DuckDB read/write functions. They support all Julia table types that follow the `Tables.jl` interface. Reading and writing is most efficient with columnar table types, such as `StructArray` or `columntable`.
 
-- `write_table(filename, table; options...)`\
+## Write table
+
+`write_table(filename, table; options...)`\
 Executes `COPY table TO file (options)` in DuckDB. Here, `table` is an arbitrary Julia table object:
 ```julia
 using QuackIO
@@ -12,7 +14,10 @@ using QuackIO
 write_table("my_file.csv", tbl)
 write_table("my_file.pq", tbl, format=:parquet)
 ```
-- `read_*(tabletype, filename; options...)` where `*` is `csv`, `parquet`, or `json`\
+
+## Read full table into memory
+
+`read_*(tabletype, filename; options...)` where `*` is `csv`, `parquet`, or `json`\
 Calls the corresponding DuckDB function and converts the result to the specified Julia table type.
 ```julia
 using QuackIO, Tables, StructArrays
@@ -26,7 +31,7 @@ tbl = read_json(rowtable, "my_file.json")
 
 Thanks to DuckDB and its Julia integration, `QuackIO` functions are performant. They can even be faster than native Julia readers for these formats.
 
-## Querying, row and column selection
+## Lazy read: only materialize a subset
 
 `QuackIO` is based on DuckDB – a fully-featured SQL database. Such a backend makes it straightforward to do basic data manipulation on the fly, without materializing the whole table in memory.\
 Thanks to the [SQLCollections.jl](https://github.com/JuliaAPlavin/SQLCollections.jl) integration, even the syntax for performing manipulations in SQL is basically the same as for in-memory Julia datasets.
@@ -38,8 +43,9 @@ Load only specific columns from a CSV file into memory:
 using QuackIO
 using SQLCollections
 
+# @o syntax comes from Accessors.jl
 map(
-   (@o (;_.version_number, _.release_date)),  # @o syntax comes from Accessors.jl
+   (@o (;_.version_number, _.release_date)),
    read_csv(SQLCollection, "https://duckdb.org/data/duckdb-releases.csv")) |> collect
 ```
 
@@ -62,8 +68,8 @@ using QuackIO
 using Tables
 using DataPipes
 
-# basic:
-# load everything into memory, then filter and select columns:
+# plain Julia tables –
+# load everything into memory first, then filter and select columns:
 @p read_csv(rowtable, "https://duckdb.org/data/duckdb-releases.csv") |>
    filter(startswith(_.version_number, "0.10.")) |>
    map((;_.version_number, _.release_date)) |>
@@ -74,9 +80,9 @@ Versus doing everything in DuckDB and loading only the small final table into me
 ```julia
 using SQLCollections
 
-# with SQLCollections:
-# filter and select columns on the fly in DuckDB,
-# load only the small final table into memory
+# with SQLCollections –
+# filter and select columns lazily in DuckDB,
+# load only the small final table into memory:
 @p read_csv(SQLCollection, "https://duckdb.org/data/duckdb-releases.csv") |>
    filter(@o startswith(_.version_number, "0.10.")) |>
    map(@o (;_.version_number, _.release_date)) |>
